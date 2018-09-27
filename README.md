@@ -1,11 +1,11 @@
 # openshift-cicd
 Jenkins with persistent
 
-oc new-app -f https://raw.githubusercontent.com/paichayon321/openshift-cicd/master/sonarqube-template.yaml
+oc new-app -f https://raw.githubusercontent.com/paichayon321/openshift-cicd/master/jenkins-persistent.yaml
 
 Jenkins without persistent
 
-oc new-app -f https://raw.githubusercontent.com/paichayon321/openshift-cicd/master/sonarqube-template.yaml
+oc new-app -f https://raw.githubusercontent.com/paichayon321/openshift-cicd/master/jenkins-ephemeral.yaml
 
 SonarQube with Embedded H2 Database:
 
