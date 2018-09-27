@@ -25,11 +25,11 @@ oc new-app -f https://raw.githubusercontent.com/paichayon321/openshift-cicd/mast
 
 #Nexus3 with persistent
 
-oc new-app -f https://raw.githubusercontent.com/paichayon321/openshift-cicd/master/nexus3-persistent-template.yaml --param NEXUS_VERSION=3.5.2
+oc new-app -f https://raw.githubusercontent.com/paichayon321/openshift-cicd/master/nexus3-persistent-template.yaml --param NEXUS_VERSION=3.13.0
 
 #Nexus3 without persistent
 
-oc new-app -f https://raw.githubusercontent.com/paichayon321/openshift-cicd/master/nexus3-template.yaml --param NEXUS_VERSION=3.5.2
+oc new-app -f https://raw.githubusercontent.com/paichayon321/openshift-cicd/master/nexus3-template.yaml --param NEXUS_VERSION=3.13.0
 
 #Example To Remove gogs App on current project
  oc get all --selector app=gogs
