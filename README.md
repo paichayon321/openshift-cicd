@@ -16,9 +16,11 @@ oc new-app -f https://raw.githubusercontent.com/paichayon321/openshift-cicd/mast
 oc new-app -f https://raw.githubusercontent.com/paichayon321/openshift-cicd/master/sonarqube-postgresql-template.yaml --param=SONARQUBE_VERSION=7.0
 
 #Gogs with persistent
+
 oc new-app -f https://raw.githubusercontent.com/paichayon321/openshift-cicd/master/gogs-persistent-template.yaml --param=GOGS_VERSION=0.11.34
 
 #Gogs without persistent
+
 oc new-app -f https://raw.githubusercontent.com/paichayon321/openshift-cicd/master/gogs-template.yaml --param=GOGS_VERSION=0.11.34
 
 
