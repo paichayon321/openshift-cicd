@@ -277,7 +277,7 @@ parameters:
   value: gogs
 - description: 'Custom hostname for http service route.  Leave blank for default hostname, e.g.: <application-name>-<project>.<default-domain-suffix>'
   name: HOSTNAME
-  required: true
+  required: false
 - displayName: Database Username
   from: gogs
   value: gogs
@@ -302,7 +302,7 @@ parameters:
 - name: GOGS_VERSION
   displayName: Gogs Version
   description: 'Version of the Gogs container image to be used (check the available version https://hub.docker.com/r/openshiftdemos/gogs/tags)'
-  value: "0.9.97"
+  value: "0.11.34"
   required: true
 - name: INSTALL_LOCK
   displayName: Installation lock
