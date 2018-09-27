@@ -26,6 +26,7 @@ oc new-app -f https://raw.githubusercontent.com/paichayon321/openshift-cicd/mast
 #Example To Remove gogs App on current project
  oc get all --selector app=gogs
  oc delete all --selector app=gogs
+* Remove PVC manualy
 
 
 
