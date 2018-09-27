@@ -23,6 +23,11 @@ oc new-app -f https://raw.githubusercontent.com/paichayon321/openshift-cicd/mast
 
 oc new-app -f https://raw.githubusercontent.com/paichayon321/openshift-cicd/master/gogs-template.yaml --param=GOGS_VERSION=0.11.34
 
+#Example To Remove gogs App on current project
+ oc get all --selector app=gogs
+ oc delete all --selector app=gogs
+
+
 
 
 
