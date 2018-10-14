@@ -1,0 +1,98 @@
+apiVersion: build.openshift.io/v1
+kind: BuildConfig
+metadata:
+  name: spring-demo-pl
+  namespace: aa53ab63-tools
+spec:
+  nodeSelector: {}
+  output: {}
+  postCommit: {}
+  resources: {}
+  runPolicy: Serial
+  source:
+    type: None
+  strategy:
+    jenkinsPipelineStrategy:
+      jenkinsfile: "def version, mvnCmd = \"mvn -s configuration/cicd-settings-nexus3.xml\"\ndef
+        devenv=\"aa53ab63-dev\"\ndef uatenv=\"aa53ab63-uat\"\ndef prodenv=\"aa53ab63-prod\"\npipeline
+        {\n  agent {\n    label 'maven'\n  }\n  stages {\n    stage('Build App') {\n
+        \     steps {\n        git branch: 'master', url: 'http://gogs-aa53ab63-tools.okd.180.222.156.217.xip.io/customer1/workshop-java-web-tdd'\n
+        \       script {\n            def pom = readMavenPom file: 'pom.xml'\n            version
+        = pom.version\n        }\n        sh \"${mvnCmd} install -DskipTests=true\"\n
+        \     }\n    }\n    stage('Test') {\n      steps {\n        sh \"${mvnCmd}
+        test\"\n        step([$class: 'JUnitResultArchiver', testResults: '**/target/surefire-reports/TEST-*.xml'])\n
+        \     }\n    }\n    stage('Code Analysis') {\n      steps {\n        script
+        {\n          sh \"${mvnCmd} sonar:sonar -Dsonar.host.url=http://sonarqube:9000
+        -DskipTests=true\"\n        }\n      }\n    }\n    // Archive app to nexus
+        via nexus3 profile.\n    stage('Archive App') {\n      steps {\n        sh
+        \"${mvnCmd} deploy -DskipTests=true -P nexus\"\n      }\n    }\n    // Create
+        BuildConfig in dev project if not exist.\n    stage('Create Image Builder')
+        {\n      when {\n        expression {\n          openshift.withCluster() {\n
+        \           openshift.withProject(\"${devenv}\") {\n              return !openshift.selector(\"bc\",
+        \"springapp-demo\").exists();\n            }\n          }\n        }\n      }\n
+        \     steps {\n        script {\n          openshift.withCluster() {\n            openshift.withProject(\"${devenv}\")
+        {\n              openshift.newBuild(\"--name=springapp-demo\", \"--image-stream=wildfly:10.0\",
+        \"--binary=true\")\n            }\n          }\n        }\n      }\n    }\n
+        \   stage('Build Image') {\n      steps {\n        sh \"rm -rf oc-build &&
+        mkdir -p oc-build/deployments\"\n        sh \"cp target/demo.war oc-build/deployments/demo.war\"\n\n
+        \       script {\n          openshift.withCluster() {\n            openshift.withProject(\"${devenv}\")
+        {\n              openshift.selector(\"bc\", \"springapp-demo\").startBuild(\"--from-dir=oc-build\",
+        \"--wait=true\")\n            }\n          }\n        }\n      }\n    }\n
+        \   // Create DeploymentConfig name workshop-java-web-tdd if not exists.\n
+        \   stage('Create DEV') {\n      when {\n        expression {\n          openshift.withCluster()
+        {\n            openshift.withProject(\"${devenv}\") {\n              return
+        !openshift.selector('dc', 'springapp-demo').exists()\n            }\n          }\n
+        \       }\n      }\n      steps {\n        script {\n          openshift.withCluster()
+        {\n            openshift.withProject(\"${devenv}\") {\n              def app
+        = openshift.newApp(\"springapp-demo:latest\")\n              app.narrow(\"svc\").expose();\n
+        \             openshift.set(\"probe dc/springapp-demo --readiness --get-url=http://:8080/demo
+        --initial-delay-seconds=30 --failure-threshold=10 --period-seconds=10\")\n
+        \             openshift.set(\"probe dc/springapp-demo --liveness  --get-url=http://:8080/demo
+        --initial-delay-seconds=180 --failure-threshold=10 --period-seconds=10\")\n
+        \             def dc = openshift.selector(\"dc\", \"springapp-demo\")\n              while
+        (dc.object().spec.replicas != dc.object().status.availableReplicas) {\n                  sleep
+        10\n              }\n              openshift.set(\"triggers\", \"dc/springapp-demo\",
+        \"--manual\")\n            }\n          }\n        }\n      }\n    }\n    stage('Deploy
+        DEV') {\n      steps {\n        script {\n          openshift.withCluster()
+        {\n            openshift.withProject(\"${devenv}\") {\n              openshift.selector(\"dc\",
+        \"springapp-demo\").rollout().latest();\n            }\n          }\n        }\n
+        \     }\n    }\n    stage('Create UAT') {\n      when {\n        expression
+        {\n          openshift.withCluster() {\n            openshift.withProject(\"${uatenv}\")
+        {\n              return !openshift.selector('dc', 'springapp-demo').exists()\n
+        \           }\n          }\n        }\n      }\n      steps {\n        script
+        {\n          openshift.withCluster() {\n            openshift.withProject(\"${uatenv}\")
+        {\n              def app = openshift.newApp(\"springapp-demo:latest\")\n              app.narrow(\"svc\").expose();\n
+        \             openshift.set(\"probe dc/springapp-demo --readiness --get-url=http://:8080/demo
+        --initial-delay-seconds=30 --failure-threshold=10 --period-seconds=10\")\n
+        \             openshift.set(\"probe dc/springapp-demo --liveness  --get-url=http://:8080/demo
+        --initial-delay-seconds=180 --failure-threshold=10 --period-seconds=10\")\n
+        \             def dc = openshift.selector(\"dc\", \"springapp-demo\")\n              while
+        (dc.object().spec.replicas != dc.object().status.availableReplicas) {\n                  sleep
+        10\n              }\n              openshift.set(\"triggers\", \"dc/springapp-demo\",
+        \"--manual\")\n            }\n          }\n        }\n      }\n    }\n    stage('Deploy
+        UAT') {\n      steps {\n        script {\n          openshift.withCluster()
+        {\n            openshift.tag(\"${devenv}/springapp-demo:latest\", \"${uatenv}/springapp-demo:latest\")\t\t
+        \   \n            openshift.withProject(\"${uatenv}\") {\n              openshift.selector(\"dc\",
+        \"springapp-demo\").rollout().latest();\n            }\n          }\n        }\n
+        \     }\n    }\t\n    stage('Promote to PROD?') {\n      steps {\n        timeout(time:15,
+        unit:'MINUTES') {\n            input message: \"Promote to STAGE?\", ok: \"Promote\"\n
+        \        }\n\t\t  script {\n          openshift.withCluster() {\n            openshift.tag(\"${uatenv}/springapp-demo:latest\",
+        \"${prodenv}/springapp-demo:${version}\")\n          }\n        }\n\t  }\n\t}\n\tstage('Create
+        PROD') {\n      when {\n        expression {\n          openshift.withCluster()
+        {\n            openshift.withProject(\"${prodenv}\") {\n              return
+        !openshift.selector('dc', 'springapp-demo').exists()\n            }\n          }\n
+        \       }\n      }\n      steps {\n        script {\n          openshift.withCluster()
+        {\n            openshift.withProject(\"${prodenv}\") {\n              def
+        app = openshift.newApp(\"springapp-demo:${version}\")\n              app.narrow(\"svc\").expose();\n
+        \             openshift.set(\"probe dc/springapp-demo --readiness --get-url=http://:8080/demo
+        --initial-delay-seconds=30 --failure-threshold=10 --period-seconds=10\")\n
+        \             openshift.set(\"probe dc/springapp-demo --liveness  --get-url=http://:8080/demo
+        --initial-delay-seconds=180 --failure-threshold=10 --period-seconds=10\")\n
+        \             def dc = openshift.selector(\"dc\", \"springapp-demo\")\n              while
+        (dc.object().spec.replicas != dc.object().status.availableReplicas) {\n                  sleep
+        10\n              }\n              openshift.set(\"triggers\", \"dc/springapp-demo\",
+        \"--auto\")\n            }\n          }\n        }\n      }\n    }\n    stage('Deploy
+        PROD') {\n      steps {\n        sh \"oc set image dc/springapp-demo springapp-demo=${prodenv}/springapp-demo:${version}
+        --source=imagestreamtag -n ${prodenv}\"\n      }\n    }\t\t\n  }\n}\n\n"
+    type: JenkinsPipeline
+  triggers: []
